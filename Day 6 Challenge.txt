@@ -1,0 +1,16 @@
+    let
+        Source = Sql.Databases("localhost"),
+        WideWorldImportersDW = Source{[Name="WideWorldImportersDW"]}[Data],
+        #"Dimension_Stock Item" = WideWorldImportersDW{[Schema="Dimension",Item="Stock Item"]}[Data],
+        #"Added Custom" = Table.AddColumn(#"Dimension_Stock Item", "Custom", each if 
+    Number.Mod ([Stock Item Key], 2) = 0
+    and 
+    [Stock Item Key] <> 0
+    and 
+    [Color] = "N/A" 
+    then 1
+    else 0),
+        #"Filtered Rows" = Table.SelectRows(#"Added Custom", each ([Custom] = 1)),
+        #"Removed Other Columns" = Table.SelectColumns(#"Filtered Rows",{"Stock Item Key", "Stock Item", "Color"})
+    in
+        #"Removed Other Columns"
