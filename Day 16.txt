@@ -1,0 +1,44 @@
+let
+    Source = Sql.Databases("localhost"),
+    WideWorldImportersDW = Source{[Name="WideWorldImportersDW"]}[Data],
+    Fact_Sale = WideWorldImportersDW{[Schema="Fact",Item="Sale"]}[Data],
+    #"month" = Table.AddColumn(Fact_Sale, "month", each Date.Month([Invoice Date Key])),
+    #"Year_month" = Table.AddColumn(month, "Year_month", each (Text.From(Date.Year([Invoice Date Key])))& (
+    if 
+    [month] < 10
+    then "0" & Number.ToText([month]) 
+    else Number.ToText([month]))),
+    #"Grouped Rows" = Table.Group(Year_month, {"Year_month"}, {{"Total Profit", each List.Sum([Profit]), type number}}),
+    #"Sorted Rows" = Table.Sort(#"Grouped Rows",{{"Year_month", Order.Ascending}}),
+    #"Merged Queries" = Table.NestedJoin(#"Sorted Rows", {"Year_month"}, #"Total Profit", {"Previous Y_M"}, "Total Profit.1",           JoinKind.LeftOuter),
+    #"Expanded Total Profit.1" = Table.ExpandTableColumn(#"Merged Queries", "Total Profit.1", {"Previous Total Profit"}, {"Total Profit.1.Previous Total Profit"}),
+    #"Added Custom" = Table.AddColumn(#"Expanded Total Profit.1", "MoM profit change", each (([Total Profit]/[Total Profit.1.Previous Total Profit])*100)),
+    #"Removed Other Columns" = Table.SelectColumns(#"Added Custom",{"Year_month", "Total Profit", "MoM profit change"})
+in
+    #"Removed Other Columns"
+
+
+
+Table 2
+
+let
+    Source = Sql.Databases("localhost"),
+    WideWorldImportersDW = Source{[Name="WideWorldImportersDW"]}[Data],
+    Fact_Sale = WideWorldImportersDW{[Schema="Fact",Item="Sale"]}[Data],
+    #"month" = Table.AddColumn(Fact_Sale, "month", each Date.Month([Invoice Date Key])),
+    #"year" = Table.AddColumn(month, "Year", each Date.Year([Invoice Date Key])),
+    #"Previous month" = Table.AddColumn(year, "previous month", each if [month] > 1
+then [month] - 1
+else 12),
+    #"Previous year" = Table.AddColumn(#"Previous month", "Previous year", each if [previous month] = 12
+then [Year] -1 
+else [Year]),
+    #"Added Custom" = Table.AddColumn(#"Previous year", "Previous Y_M", each (Text.From([Previous year])& (
+    if 
+    [previous month] < 10
+    then "0" & Number.ToText([previous month]) 
+    else Number.ToText([previous month])))),
+    #"Grouped Rows" = Table.Group(#"Added Custom", {"Previous Y_M"}, {{"Previous Total Profit", each List.Sum([Profit]), type number}}),
+    #"Sorted Rows" = Table.Sort(#"Grouped Rows",{{"Previous Y_M", Order.Ascending}})
+in
+    #"Sorted Rows"

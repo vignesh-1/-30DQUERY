@@ -1,0 +1,37 @@
+let
+  Source = Sql.Databases("localhost"),
+  AdventureWorksDW2017 = Source{[Name = "AdventureWorksDW2017"]}[Data],
+  dbo_DimEmployee = AdventureWorksDW2017{[Schema = "dbo", Item = "DimEmployee"]}[Data],
+  #"Removed Other Columns" = Table.SelectColumns(
+    dbo_DimEmployee, 
+    {"BirthDate", "EmailAddress", "Gender"}
+  ),
+  #"Added Custom" = Table.AddColumn(#"Removed Other Columns", "year", each Date.Year([BirthDate])),
+  #"Added Custom1" = Table.AddColumn(#"Added Custom", "Month", each Date.Month([BirthDate])),
+  #"Added Custom2" = Table.AddColumn(#"Added Custom1", "Day", each Date.Day([BirthDate])),
+  #"Month_ToText" = Table.AddColumn(
+    #"Added Custom2", 
+    "Custom.1", 
+    each if [Month] < 10 then "0" & Number.ToText([Month]) else Number.ToText([Month])
+  ),
+  #"Day_ToText" = Table.AddColumn(
+    #"Month_ToText", 
+    "Custom.2", 
+    each if [Day] < 10 then "0" & Number.ToText([Day]) else Number.ToText([Day])
+  ),
+  #"Concat_Columns" = Table.AddColumn(
+    #"Day_ToText", 
+    "Custom.3", 
+    each Number.ToText([year]) & [Custom.1] & [Custom.2]
+  ),
+  #"Filtered Rows" = Table.SelectRows(Concat_Columns, each ([year] = 1990)),
+  #"Removed Other Columns1" = Table.SelectColumns(
+    #"Filtered Rows", 
+    {"BirthDate", "EmailAddress", "Gender", "Custom.3"}
+  ),
+  #"Renamed Columns" = Table.RenameColumns(
+    #"Removed Other Columns1", 
+    {{"Custom.3", "Formatted Date"}}
+  )
+in
+  #"Renamed Columns"

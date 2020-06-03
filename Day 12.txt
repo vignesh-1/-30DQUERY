@@ -1,0 +1,38 @@
+let
+  Source = Sql.Databases("localhost"),
+  WideWorldImportersDW = Source{[Name = "WideWorldImportersDW"]}[Data],
+  Dimension_Employee = WideWorldImportersDW{[Schema = "Dimension", Item = "Employee"]}[Data],
+  #"Expanded Fact.Sale" = Table.ExpandTableColumn(
+    Dimension_Employee, 
+    "Fact.Sale", 
+    {"Sale Key"}, 
+    {"Fact.Sale.Sale Key"}
+  ),
+  #"Merged Queries" = Table.NestedJoin(
+    #"Expanded Fact.Sale", 
+    {"Fact.Sale.Sale Key"}, 
+    #"Dimension Customer", 
+    {"Fact.Sale(Customer Key).Sale Key"}, 
+    "Dimension Customer", 
+    JoinKind.LeftOuter
+  ),
+  #"Expanded Dimension Customer" = Table.ExpandTableColumn(
+    #"Merged Queries", 
+    "Dimension Customer", 
+    {"Primary Contact"}, 
+    {"Dimension Customer.Primary Contact"}
+  ),
+  #"Filtered Rows" = Table.SelectRows(
+    #"Expanded Dimension Customer", 
+    each ([Dimension Customer.Primary Contact] <> "N/A")
+  ),
+  #"Added Custom" = Table.AddColumn(
+    #"Filtered Rows", 
+    "Full name", 
+    each [Employee] & " " & [Dimension Customer.Primary Contact]
+  ),
+  #"Removed Other Columns" = Table.SelectColumns(#"Added Custom", {"Full name"}),
+  #"Sorted Rows" = Table.Sort(#"Removed Other Columns", {{"Full name", Order.Ascending}}),
+  #"Removed Duplicates" = Table.Distinct(#"Sorted Rows")
+in
+  #"Removed Duplicates"

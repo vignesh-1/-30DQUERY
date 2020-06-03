@@ -1,0 +1,8 @@
+let
+    Source = Sql.Databases("localhost"),
+    WideWorldImportersDW = Source{[Name="WideWorldImportersDW"]}[Data],
+    #"Dimension_Stock Item" = WideWorldImportersDW{[Schema="Dimension",Item="Stock Item"]}[Data],
+    Filtered_List = Table.ColumnsOfType(#"Dimension_Stock Item",{type text}),
+    Filtered_Table = Table.SelectColumns(#"Dimension_Stock Item",Filtered_List)
+in
+   Filtered_Table

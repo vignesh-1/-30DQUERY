@@ -1,0 +1,20 @@
+let
+        Source = Sql.Databases("localhost"),
+    AdventureWorksDW2017 = Source{[Name="AdventureWorksDW2017"]}[Data],
+    dbo_FactResellerSales = AdventureWorksDW2017{[Schema="dbo",Item="FactResellerSales"]}[Data],
+    #"Removed Other Columns" = Table.SelectColumns(dbo_FactResellerSales,{"ProductKey", "SalesOrderNumber", "SalesAmount", "ShipDate"}),
+    #"Changed Type" = Table.TransformColumnTypes(#"Removed Other Columns",{{"ShipDate", type date}}),
+    #"AddedYear" = Table.AddColumn(#"Changed Type", "Year", each Date.Year([ShipDate])),
+    CurrentYear = Date.Year(DateTime.FixedLocalNow()),
+     #"CheckPrevious7" = Table.AddColumn(#"AddedYear", "IsPrevious7", each 
+        if CurrentYear-[Year] <= 7
+        then 
+        1
+        else 
+        0
+     ),
+
+     #"FilteredTable" = Table.SelectRows( #"CheckPrevious7",each [IsPrevious7] = 1),
+    #"FinalTable" =Table.SelectColumns(#"FilteredTable",{"ProductKey", "SalesOrderNumber", "SalesAmount", "ShipDate"})
+in
+ #"FinalTable"

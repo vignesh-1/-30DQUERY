@@ -1,0 +1,12 @@
+let
+    Source = Sql.Databases("localhost"),
+    WideWorldImportersDW = Source{[Name="WideWorldImportersDW"]}[Data],
+    Fact_Order = WideWorldImportersDW{[Schema="Fact",Item="Order"]}[Data],
+    #"Removed Other Columns" = Table.SelectColumns(Fact_Order,{"Order Key", "Description", "Quantity"}),
+    #"Added Custom" = Table.AddColumn(#"Removed Other Columns", "Category", each if ([Quantity] <100)
+        then "Less than 100"
+        else if [Quantity]>100 and [Quantity]<250
+        then "Between 100 and 250 "
+        else "More than 250")
+in
+    #"Added Custom"

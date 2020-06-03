@@ -1,0 +1,9 @@
+let
+    Source = Sql.Databases("localhost"),
+    AdventureWorksDW2017 = Source{[Name="AdventureWorksDW2017"]}[Data],
+    dbo_FactResellerSales = AdventureWorksDW2017{[Schema="dbo",Item="FactResellerSales"]}[Data],
+    #"Removed Other Columns" = Table.SelectColumns(dbo_FactResellerSales,{"ResellerKey", "EmployeeKey", "SalesOrderNumber", "OrderDate"}),
+    #"Added Custom" = Table.AddColumn(#"Removed Other Columns", "UnixTimestamp",
+    each Duration.TotalSeconds([OrderDate]-#datetime(1970,1,1,0,0,0)))
+in
+    #"Added Custom"

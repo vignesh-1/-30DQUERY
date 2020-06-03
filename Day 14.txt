@@ -1,0 +1,42 @@
+let
+  Source = Sql.Databases("localhost"),
+  AdventureWorksDW2017 = Source{[Name = "AdventureWorksDW2017"]}[Data],
+  dbo_DimCustomer = AdventureWorksDW2017{[Schema = "dbo", Item = "DimCustomer"]}[Data],
+  #"Added Custom" = Table.AddColumn(
+    dbo_DimCustomer, 
+    "Day of Bday", 
+    each Date.DayOfWeek([BirthDate])
+  ),
+  #"Added Conditional Column" = Table.AddColumn(
+    #"Added Custom", 
+    "Day", 
+    each 
+      if [Day of Bday] = 7
+      then "Saturday"
+      else 
+        if [Day of Bday] = 1
+        then "Sunday"
+        else 
+          if [Day of Bday] = 2
+          then "Monday"
+          else 
+            if [Day of Bday] = 3
+            then "Tuesday"
+            else 
+              if [Day of Bday] = 4
+              then "Wednesday"
+              else if [Day of Bday] = 5 then "Thursday" else 
+                if [Day of Bday] = 6
+                then "Friday"
+                else null
+  ),
+  #"Filtered Rows" = Table.SelectRows(
+    #"Added Conditional Column", 
+    each ([Day] <> "Saturday" and [Day] <> "Sunday")
+  ),
+  #"Removed Other Columns" = Table.SelectColumns(
+    #"Filtered Rows", 
+    {"CustomerKey", "EmailAddress", "YearlyIncome", "EnglishOccupation"}
+  )
+in
+  #"Removed Other Columns"

@@ -1,0 +1,14 @@
+let
+    Source = Sql.Databases("localhost"),
+    AdventureWorksDW2017 = Source{[Name="AdventureWorksDW2017"]}[Data],
+    dbo_DimCurrency = AdventureWorksDW2017{[Schema="dbo",Item="DimCurrency"]}[Data],
+    FindList = Table.Column(dbo_DimCurrency,"CurrencyName"),
+    Finde = List.Transform(FindList, each if 
+   Text.Length(_) >= Text.Length(Text.Replace(_,"e",""))+2
+   then _ else null 
+    ),
+     FinalList = List.RemoveNulls(Finde),
+     FinalTable = Table.SelectRows(dbo_DimCurrency, each List.Contains(FinalList,[CurrencyName])),
+    #"Removed Other Columns" = Table.SelectColumns(FinalTable,{"CurrencyKey", "CurrencyAlternateKey", "CurrencyName"})
+in
+      #"Removed Other Columns"

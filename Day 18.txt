@@ -1,0 +1,21 @@
+let
+    Source = Sql.Databases("localhost"),
+    WideWorldImportersDW = Source{[Name="WideWorldImportersDW"]}[Data],
+    Dimension_City = WideWorldImportersDW{[Schema="Dimension",Item="City"]}[Data],
+    FindList = Table.Column(Dimension_City,"City"),
+    TransformList = List.Transform(FindList, each 
+    if (Text.Contains(_,"C") and Text.Contains(_,"d") and Text.Contains(_,"A"))
+    then 
+    _
+    else 
+    null
+    
+    ),
+    FinalList = List.RemoveNulls(TransformList),
+
+    FinalTable = Table.SelectRows(Dimension_City, each List.Contains(FinalList,[City])),
+
+    FilteredTable = Table.SelectColumns(FinalTable,{"City Key","City","State Province","Sales Territory"})
+ 
+in
+    FilteredTable
