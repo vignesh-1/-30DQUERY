@@ -1,0 +1,7 @@
+let
+    Source = Sql.Database("localhost", "WideWorldImportersDW", [CreateNavigationProperties=false]),
+    Fact_Order = Source{[Schema="Fact",Item="Order"]}[Data],
+    filtered_records = Table.SelectRows(Fact_Order, each Number.Mod(Text.Length([Description]), 10) = 1),
+    selected_columns = Table.SelectColumns(filtered_records, {"Order Key", "Description"})
+in
+    selected_columns
