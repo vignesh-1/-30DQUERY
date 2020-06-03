@@ -1,0 +1,11 @@
+let
+    Source = Sql.Databases("localhost"),
+    AdventureWorksDW2017 = Source{[Name="AdventureWorksDW2017"]}[Data],
+    dbo_DimEmployee = AdventureWorksDW2017{[Schema="dbo",Item="DimEmployee"]}[Data],
+    filtered_year = Table.SelectRows(dbo_DimEmployee, each Date.Year([BirthDate]) = 1974),
+    null_wrap = Table.ReplaceValue(filtered_year, null, "", Replacer.ReplaceValue, {"MiddleName"}),
+    concat_name = Table.AddColumn(null_wrap, "FullName", each [FirstName] 
+    & (if [MiddleName] <> "" then " " else "") & [MiddleName] & " " & [LastName], type text),
+    selected_columns = Table.SelectColumns(concat_name, {"EmployeeKey", "Gender", "BirthDate", "FullName"})
+in
+    selected_columns
