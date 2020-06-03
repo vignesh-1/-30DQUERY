@@ -1,0 +1,12 @@
+let
+    Source = Sql.Database("localhost", "AdventureWorksDW2017", [CreateNavigationProperties=false]),
+    dbo_DimProduct = Source{[Schema="dbo",Item="DimProduct"]}[Data],
+    dbo_FactResellerSales = Source{[Schema="dbo",Item="FactResellerSales"]}[Data],
+    revenue_custom = Table.AddColumn(dbo_FactResellerSales, "TotalUnitPrice", each [OrderQuantity] * [UnitPrice], type number),
+    joined-table = Table.NestedJoin(dbo_DimProduct, "ProductKey", revenue_custom, "ProductKey", "SalesFact", JoinKind.Inner),
+    expanded-sales = Table.ExpandTableColumn(joined-table, "SalesFact", {"TotalUnitPrice"}),    
+    aggregate-revenue = Table.Group(expanded-sales, {"ProductKey", "EnglishProductName"}, {{"TotalRevenue", 
+    each List.Sum([TotalUnitPrice]), type number}}),
+    filtered_table = Table.SelectRows(aggregate-revenue, each [TotalRevenue] > 1000000)
+in
+    filtered_table
